@@ -1,0 +1,15 @@
+[Unit]
+Description=Biznes AI Sotuvchi Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/sotuvchi_bot
+ExecStart=/opt/sotuvchi_bot/.venv/bin/python run.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/sotuvchi_bot/.env
+
+[Install]
+WantedBy=multi-user.target

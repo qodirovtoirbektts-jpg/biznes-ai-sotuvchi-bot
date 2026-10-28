@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: biznes-ai-sotuvchi-bot
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run.py
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: PORT
+        value: 10000
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: STORE_NAME
+        value: Biznes AI Do'koni
+      - key: STORE_DESCRIPTION
+        value: Universal internet do'koni va professional xizmatlar markazi
+      - key: STORE_PHONE
+        value: "+998901234567"
+      - key: DELIVERY_PRICE
+        value: "20000"

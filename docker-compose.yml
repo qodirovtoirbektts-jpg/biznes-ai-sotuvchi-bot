@@ -1,0 +1,9 @@
+services:
+  bot:
+    build: .
+    container_name: sotuvchi_ai_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./sotuvchi.db:/app/sotuvchi.db
