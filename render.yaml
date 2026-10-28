@@ -15,9 +15,9 @@ services:
       - key: BOT_TOKEN
         value: 9277921986:AAFriz9__oOJgaqrhNdW3NeIfjdg1jZcBM8
       - key: ADMIN_IDS
-        sync: false
+        value: "77777777"
       - key: GEMINI_API_KEY
-        sync: false
+        value: ""
       - key: STORE_NAME
         value: Biznes AI Do'koni
       - key: STORE_DESCRIPTION
