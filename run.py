@@ -46,8 +46,9 @@ async def start_render_health_server(port: int) -> web.AppRunner:
 
 
 async def main():
-    if not settings.BOT_TOKEN:
-        logger.error("BOT_TOKEN is not provided in .env!")
+    bot_token = settings.BOT_TOKEN or os.getenv("BOT_TOKEN") or "9277921986:AAFriz9__oOJgaqrhNdW3NeIfjdg1jZcBM8"
+    if not bot_token:
+        logger.error("BOT_TOKEN is not provided!")
         return
 
     logger.info("Initializing database...")
@@ -55,7 +56,7 @@ async def main():
     logger.info("Database successfully initialized.")
 
     bot = Bot(
-        token=settings.BOT_TOKEN,
+        token=bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
     )
 

@@ -1,10 +1,13 @@
+import os
 from typing import List
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_BOT_TOKEN = "9277921986:AAFriz9__oOJgaqrhNdW3NeIfjdg1jZcBM8"
+
 
 class Settings(BaseSettings):
-    BOT_TOKEN: str = Field(default="")
+    BOT_TOKEN: str = Field(default_factory=lambda: os.getenv("BOT_TOKEN") or DEFAULT_BOT_TOKEN)
     ADMIN_IDS: List[int] = Field(default_factory=list)
     GEMINI_API_KEY: str = Field(default="")
     GEMINI_MODEL: str = Field(default="gemini-1.5-flash")
