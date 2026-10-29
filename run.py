@@ -45,6 +45,26 @@ async def start_render_health_server(port: int) -> web.AppRunner:
     return runner
 
 
+async def keep_alive_pinger():
+    """Periodically ping external URL to keep service active on free tiers."""
+    ping_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("KEEP_ALIVE_URL")
+    if not ping_url:
+        return
+    if not ping_url.endswith("/health"):
+        ping_url = f"{ping_url.rstrip('/')}/health"
+
+    logger.info(f"Keep-alive pinger faollashtirildi: {ping_url}")
+    await asyncio.sleep(60)
+    while True:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(ping_url, timeout=15) as resp:
+                    logger.info(f"Keep-alive pinger javobi: HTTP {resp.status}")
+        except Exception as exc:
+            logger.debug(f"Keep-alive pinger bildirishnomasi: {exc}")
+        await asyncio.sleep(600)  # Ping every 10 minutes
+
+
 async def main():
     bot_token = settings.BOT_TOKEN or os.getenv("BOT_TOKEN") or "9277921986:AAFriz9__oOJgaqrhNdW3NeIfjdg1jZcBM8"
     if not bot_token:
@@ -62,6 +82,12 @@ async def main():
 
     dp = Dispatcher(storage=MemoryStorage())
 
+    # Global error handler so no uncaught handler exception crashes the bot
+    @dp.error()
+    async def global_error_handler(event):
+        logger.error(f"Ushlangan ichki xatolik: {event.exception}", exc_info=True)
+        return True
+
     # Register Middlewares
     user_middleware = UserAndDbMiddleware()
     dp.message.middleware(user_middleware)
@@ -76,15 +102,36 @@ async def main():
     if port_env and port_env.isdigit():
         web_runner = await start_render_health_server(int(port_env))
 
-    # Delete webhook and drop pending updates before starting polling
-    await bot.delete_webhook(drop_pending_updates=True)
+    # Start background keep-alive pinger
+    pinger_task = asyncio.create_task(keep_alive_pinger())
 
-    bot_info = await bot.get_me()
-    logger.info(f"Bot started successfully: @{bot_info.username} ({bot_info.first_name})")
+    # Delete webhook and drop pending updates before starting polling
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+    except Exception as e:
+        logger.warning(f"Webhook tozalashda ogohlantirish: {e}")
 
     try:
-        await dp.start_polling(bot)
+        bot_info = await bot.get_me()
+        logger.info(f"Bot muvaffaqiyatli ishga tushdi: @{bot_info.username} ({bot_info.first_name})")
+    except Exception as e:
+        logger.warning(f"Bot ma'lumotlarini olishda ogohlantirish: {e}")
+
+    # Resilient polling loop with auto-reconnection
+    try:
+        while True:
+            try:
+                logger.info("Bot xabarlarni qabul qilishga tayyor (polling faol)...")
+                await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+                break
+            except (KeyboardInterrupt, SystemExit):
+                logger.info("Bot to'xtatildi.")
+                break
+            except Exception as exc:
+                logger.error(f"Aloqa uzildi yoki xatolik: {exc}. 5 soniyadan so'ng qayta ulanadi...")
+                await asyncio.sleep(5)
     finally:
+        pinger_task.cancel()
         if web_runner:
             await web_runner.cleanup()
         await bot.session.close()
@@ -94,4 +141,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("Bot stopped.")
+        logger.info("Bot to'liq to'xtatildi.")
